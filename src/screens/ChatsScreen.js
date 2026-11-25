@@ -76,13 +76,14 @@ function ConversationRow({ conversation, onPress, theme }) {
         <VideoAvatar
           accessibilityLabel={`${conversation.name} looping avatar`}
           accentColor={
-            conversation.online
+            conversation.online && !theme.preferences.ghostMode
               ? theme.colors.electricGreen
               : theme.colors.deepNeonPurple
           }
           initials={conversation.initials}
-          isActive={conversation.online}
+          isActive={conversation.online && !theme.preferences.ghostMode}
           neonIntensity={theme.effects.neonIntensity}
+          wallpaperScope="chats"
           size={46}
         />
       </View>
@@ -90,7 +91,9 @@ function ConversationRow({ conversation, onPress, theme }) {
       <View style={styles.conversationInfo}>
         <View style={styles.nameLine}>
           <Text style={styles.name}>{conversation.name}</Text>
-          <Text style={styles.time}>{conversation.time}</Text>
+          <Text style={styles.time}>
+            {theme.preferences.ghostMode ? '—' : conversation.time}
+          </Text>
         </View>
         <Text style={styles.handle}>{conversation.handle}</Text>
         <View style={styles.previewLine}>
@@ -113,7 +116,7 @@ function ConversationRow({ conversation, onPress, theme }) {
 }
 
 export default function ChatsScreen({ navigation }) {
-  const { theme } = useM7Theme();
+  const { theme, preferences } = useM7Theme('chats');
   const [query, setQuery] = useState('');
   const normalizedQuery = query.trim().toLowerCase();
   const filteredConversations = conversations.filter(conversation =>
@@ -129,21 +132,25 @@ export default function ChatsScreen({ navigation }) {
     >
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>MAINSI / PRIVATE NETWORK</Text>
+          <Text style={styles.eyebrow}>Mence. / @voce.mence</Text>
           <Text style={styles.title}>Chats</Text>
         </View>
         <View style={styles.securePill}>
           <Text style={styles.secureGlyph}>⌑</Text>
-          <Text style={styles.secureText}>SECURE</Text>
+          <Text style={styles.secureText}>M7 LOCAL</Text>
         </View>
       </View>
 
       <View style={styles.securityBanner}>
         <View style={styles.securityDot} />
-        <Text style={styles.securityMessage}>PRIVATE CHANNELS · LOCAL OUTBOX AVAILABLE</Text>
+        <Text style={styles.securityMessage}>
+          {preferences.ghostMode
+            ? 'GHOST MODE · PRESENCE HIDDEN IN THIS UI'
+            : 'PRIVATE CHANNELS · LOCAL OUTBOX AVAILABLE'}
+        </Text>
       </View>
 
-      <View style={styles.searchBox}>
+      <View style={[styles.searchBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.panelBorder }]}>
         <Text style={styles.searchGlyph}>⌕</Text>
         <TextInput
           accessibilityLabel="Search chats"
@@ -158,8 +165,10 @@ export default function ChatsScreen({ navigation }) {
 
       <View style={styles.listHeading}>
         <Text style={styles.listTitle}>MESSAGES</Text>
-        <Text style={styles.onlineCount}>
-          {conversations.filter(conversation => conversation.online).length} ONLINE
+        <Text style={[styles.onlineCount, { color: theme.colors.electricGreen }]}>
+          {preferences.ghostMode
+            ? 'GHOST MODE'
+            : `${conversations.filter(conversation => conversation.online).length} ONLINE`}
         </Text>
       </View>
 

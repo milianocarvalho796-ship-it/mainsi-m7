@@ -26,14 +26,27 @@ const themeOptions = {
   typography: [
     { id: 'spaceGrotesk', label: 'Space Grotesk' },
     { id: 'orbitron', label: 'Orbitron' },
+    { id: 'jetBrainsMono', label: 'JetBrains Mono' },
   ],
 };
 
+const wallpaperScopes = [
+  { id: 'chats', label: 'CHATS' },
+  { id: 'chatDetail', label: 'CHAT DETAIL' },
+  { id: 'feed', label: 'FEED' },
+  { id: 'reels', label: 'REELS' },
+  { id: 'hub', label: 'HUB' },
+];
+
 const defaultThemePreferences = {
   bubbleColor: 'cyberYellow',
+  customBubbleColor: null,
   wallpaper: 'oled',
+  screenWallpapers: Object.fromEntries(wallpaperScopes.map(({ id }) => [id, 'global'])),
   neonIntensity: 'balanced',
   typography: 'spaceGrotesk',
+  ghostMode: false,
+  antiDelete: false,
 };
 
 const fontFamilies = {
@@ -49,7 +62,30 @@ const fontFamilies = {
     bodyBold: 'Orbitron_700Bold',
     display: 'Orbitron_700Bold',
   },
+  jetBrainsMono: {
+    body: 'JetBrainsMono_400Regular',
+    bodyMedium: 'JetBrainsMono_500Medium',
+    bodyBold: 'JetBrainsMono_700Bold',
+    display: 'JetBrainsMono_700Bold',
+  },
 };
+
+function normalizeHexColor(value) {
+  if (typeof value !== 'string' || !/^#?[0-9a-fA-F]{6}$/.test(value)) {
+    throw new Error('Custom bubble color must be a 6-digit HEX value');
+  }
+
+  return `#${value.replace('#', '').toUpperCase()}`;
+}
+
+function getReadableTextColor(hex) {
+  const value = hex.replace('#', '');
+  const red = parseInt(value.slice(0, 2), 16);
+  const green = parseInt(value.slice(2, 4), 16);
+  const blue = parseInt(value.slice(4, 6), 16);
+  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+  return luminance > 150 ? '#111116' : '#FFFFFF';
+}
 
 function findOption(options, id) {
   return options.find(option => option.id === id);
@@ -80,18 +116,55 @@ function normalizeThemePreferences(preferences = {}) {
     }
   }
 
+  if (normalized.customBubbleColor !== null) {
+    normalized.customBubbleColor = normalizeHexColor(normalized.customBubbleColor);
+  }
+  if (
+    normalized.screenWallpapers === null ||
+    typeof normalized.screenWallpapers !== 'object' ||
+    Array.isArray(normalized.screenWallpapers)
+  ) {
+    throw new TypeError('screenWallpapers must be an object');
+  }
+  const screenWallpapers = { ...defaultThemePreferences.screenWallpapers };
+  for (const [screen, wallpaperId] of Object.entries(normalized.screenWallpapers)) {
+    if (!wallpaperScopes.some(scope => scope.id === screen)) {
+      throw new Error(`Unsupported wallpaper screen: ${screen}`);
+    }
+    if (wallpaperId !== 'global' && !findOption(themeOptions.wallpapers, wallpaperId)) {
+      throw new Error(`Unsupported wallpaper for ${screen}: ${wallpaperId}`);
+    }
+    screenWallpapers[screen] = wallpaperId;
+  }
+  for (const key of ['ghostMode', 'antiDelete']) {
+    if (typeof normalized[key] !== 'boolean') {
+      throw new Error(`${key} must be a boolean`);
+    }
+  }
+
   return {
     bubbleColor: normalized.bubbleColor,
+    customBubbleColor: normalized.customBubbleColor,
     wallpaper: normalized.wallpaper,
+    screenWallpapers,
     neonIntensity: normalized.neonIntensity,
     typography: normalized.typography,
+    ghostMode: normalized.ghostMode,
+    antiDelete: normalized.antiDelete,
   };
 }
 
-function createM7Theme(preferences = defaultThemePreferences) {
+function createM7Theme(preferences = defaultThemePreferences, screenScope) {
   const normalizedPreferences = normalizeThemePreferences(preferences);
   const bubble = findOption(themeOptions.bubbleColors, normalizedPreferences.bubbleColor);
-  const wallpaper = findOption(themeOptions.wallpapers, normalizedPreferences.wallpaper);
+  const bubbleColor = normalizedPreferences.customBubbleColor || bubble.color;
+  const screenWallpaper = screenScope
+    ? normalizedPreferences.screenWallpapers[screenScope]
+    : 'global';
+  const wallpaperId = screenWallpaper && screenWallpaper !== 'global'
+    ? screenWallpaper
+    : normalizedPreferences.wallpaper;
+  const wallpaper = findOption(themeOptions.wallpapers, wallpaperId);
   const intensity = findOption(themeOptions.neonIntensities, normalizedPreferences.neonIntensity);
 
   return {
@@ -99,14 +172,18 @@ function createM7Theme(preferences = defaultThemePreferences) {
       ...colors,
       background: wallpaper.background,
       surface: wallpaper.surface,
-      chatBubble: bubble.color,
-      chatBubbleText: bubble.textColor,
+      panelBorder: '#292631',
+      chatBubble: bubbleColor,
+      chatBubbleText: normalizedPreferences.customBubbleColor
+        ? getReadableTextColor(bubbleColor)
+        : bubble.textColor,
     },
     fonts: {
       ...fontFamilies[normalizedPreferences.typography],
       families: {
         spaceGrotesk: 'Space Grotesk',
         orbitron: 'Orbitron',
+        jetBrainsMono: 'JetBrains Mono',
       },
     },
     effects: {
@@ -125,6 +202,8 @@ export {
   defaultThemePreferences,
   fontFamilies,
   normalizeThemePreferences,
+  normalizeHexColor,
   themeOptions,
+  wallpaperScopes,
 };
 export default m7Theme;

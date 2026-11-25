@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -19,7 +20,7 @@ function formatTime(date) {
   return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
-function MessageBubble({ message, theme }) {
+function MessageBubble({ message, theme, onLongPress }) {
   const outgoing = message.sender === 'me';
   const outgoingThemeStyle = outgoing
     ? {
@@ -35,7 +36,14 @@ function MessageBubble({ message, theme }) {
 
   return (
     <View style={[styles.messageRow, outgoing ? styles.outgoingRow : styles.incomingRow]}>
-      <View style={[styles.messageBubble, outgoing ? styles.outgoingBubble : styles.incomingBubble, outgoingThemeStyle]}>
+      <Pressable
+        accessibilityRole={onLongPress ? 'button' : undefined}
+        accessibilityLabel={onLongPress ? 'Long press to simulate local message removal' : undefined}
+        delayLongPress={450}
+        disabled={!onLongPress}
+        onLongPress={onLongPress}
+        style={[styles.messageBubble, outgoing ? styles.outgoingBubble : styles.incomingBubble, outgoingThemeStyle]}
+      >
         <Text
           style={[
             styles.messageText,
@@ -46,18 +54,21 @@ function MessageBubble({ message, theme }) {
           {message.text}
         </Text>
         <View style={styles.messageMeta}>
+          {message.status === 'retained' && (
+            <Text style={styles.retainedLabel}>RETAINED · </Text>
+          )}
           {message.status === 'queued' && (
             <Text style={styles.queuedLabel}>QUEUED · </Text>
           )}
           <Text style={[styles.messageTime, outgoing && styles.outgoingTime]}>{message.time}</Text>
         </View>
-      </View>
+      </Pressable>
     </View>
   );
 }
 
 export default function ChatDetailScreen({ navigation, route }) {
-  const { theme } = useM7Theme();
+  const { theme, preferences } = useM7Theme('chatDetail');
   const conversation = route.params.conversation;
   const [messages, setMessages] = useState(conversation.messages || []);
   const [draft, setDraft] = useState('');
@@ -130,6 +141,34 @@ export default function ChatDetailScreen({ navigation, route }) {
     }
   }
 
+  function confirmLocalRemoval(message) {
+    if (message.sender === 'me') {
+      return;
+    }
+
+    Alert.alert(
+      'Simulate message removal?',
+      'This only changes the local M7 demo thread. It cannot observe or recover messages from another app or server.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: preferences.antiDelete ? 'Remove (retain locally)' : 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setMessages(currentMessages => {
+              if (!preferences.antiDelete) {
+                return currentMessages.filter(item => item.id !== message.id);
+              }
+              return currentMessages.map(item => (
+                item.id === message.id ? { ...item, status: 'retained' } : item
+              ));
+            });
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
@@ -152,19 +191,24 @@ export default function ChatDetailScreen({ navigation, route }) {
           <VideoAvatar
             accessibilityLabel={`${conversation.name} looping avatar`}
             accentColor={
-              conversation.online
+              conversation.online && !preferences.ghostMode
                 ? theme.colors.electricGreen
                 : theme.colors.deepNeonPurple
             }
             initials={conversation.initials}
-            isActive={conversation.online}
+            isActive={conversation.online && !preferences.ghostMode}
             neonIntensity={theme.effects.neonIntensity}
+            wallpaperScope="chatDetail"
             size={40}
           />
           <View style={styles.headerIdentity}>
             <Text style={styles.name}>{conversation.name}</Text>
             <Text style={styles.handle}>
-              {conversation.online ? 'ONLINE · PRIVATE CHANNEL' : 'PRIVATE CHANNEL · OFFLINE READY'}
+              {preferences.ghostMode
+                ? 'GHOST MODE · PRESENCE HIDDEN'
+                : conversation.online
+                  ? 'ONLINE · PRIVATE CHANNEL'
+                  : 'PRIVATE CHANNEL · OFFLINE READY'}
             </Text>
           </View>
           <Pressable
@@ -187,7 +231,7 @@ export default function ChatDetailScreen({ navigation, route }) {
           </Text>
         </View>
 
-        {showThemeControls ? <ThemeControls /> : null}
+        {showThemeControls ? <ThemeControls wallpaperScope="chatDetail" /> : null}
 
         <ScrollView
           ref={scrollViewRef}
@@ -199,7 +243,16 @@ export default function ChatDetailScreen({ navigation, route }) {
         >
           <Text style={styles.dayDivider}>TODAY · PRIVATE TRANSMISSION</Text>
           {messages.map(message => (
-            <MessageBubble key={message.id} message={message} theme={theme} />
+            <MessageBubble
+              key={message.id}
+              message={message}
+              theme={theme}
+              onLongPress={
+                message.sender !== 'me'
+                  ? () => confirmLocalRemoval(message)
+                  : undefined
+              }
+            />
           ))}
         </ScrollView>
 
@@ -245,6 +298,9 @@ export default function ChatDetailScreen({ navigation, route }) {
           </Pressable>
         </View>
         <Text style={styles.composerHint}>SAVED TO THIS DEVICE · SYNC SERVICE NOT CONNECTED</Text>
+        {preferences.antiDelete ? (
+          <Text style={styles.localOnlyHint}>ANTI-DELETE · LOCAL DEMO THREAD ONLY</Text>
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -404,6 +460,12 @@ const styles = StyleSheet.create({
     fontSize: 8,
     letterSpacing: 0.3,
   },
+  retainedLabel: {
+    color: m7Theme.colors.deepNeonPurple,
+    fontFamily: m7Theme.fonts.bodyBold,
+    fontSize: 8,
+    letterSpacing: 0.3,
+  },
   messageTime: {
     color: m7Theme.colors.mutedText,
     fontFamily: m7Theme.fonts.body,
@@ -469,5 +531,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingTop: 7,
     paddingBottom: 6,
+  },
+  localOnlyHint: {
+    color: m7Theme.colors.deepNeonPurple,
+    fontFamily: m7Theme.fonts.bodyMedium,
+    fontSize: 7,
+    letterSpacing: 0.6,
+    textAlign: 'center',
+    paddingBottom: 5,
   },
 });

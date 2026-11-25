@@ -4,6 +4,9 @@ import { useFonts } from 'expo-font';
 import { Orbitron_400Regular } from '@expo-google-fonts/orbitron/400Regular';
 import { Orbitron_500Medium } from '@expo-google-fonts/orbitron/500Medium';
 import { Orbitron_700Bold } from '@expo-google-fonts/orbitron/700Bold';
+import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono/400Regular';
+import { JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono/500Medium';
+import { JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono/700Bold';
 import { SpaceGrotesk_400Regular } from '@expo-google-fonts/space-grotesk/400Regular';
 import { SpaceGrotesk_500Medium } from '@expo-google-fonts/space-grotesk/500Medium';
 import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
@@ -17,6 +20,9 @@ function AppNavigation() {
     Orbitron_400Regular,
     Orbitron_500Medium,
     Orbitron_700Bold,
+    JetBrainsMono_400Regular,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
     SpaceGrotesk_400Regular,
     SpaceGrotesk_500Medium,
     SpaceGrotesk_700Bold,
@@ -40,7 +46,12 @@ function AppNavigation() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <NavigationContainer theme={navigationTheme}>
+      <NavigationContainer
+        documentTitle={{
+          formatter: options => (options?.title ? `${options.title} | Mence.` : 'Mence.'),
+        }}
+        theme={navigationTheme}
+      >
         <BottomTabNavigator />
       </NavigationContainer>
       {fontError ? (

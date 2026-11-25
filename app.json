@@ -1,5 +1,32 @@
 {
-  "plugins": [
-    "expo-font"
-  ]
+  "expo": {
+    "name": "Mence",
+    "slug": "mainsi-m7",
+    "plugins": [
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Mence to select profile photos and video loops.",
+          "cameraPermission": "Allow Mence to capture a profile photo.",
+          "microphonePermission": false,
+          "colors": {
+            "cropToolbarColor": "#07070B",
+            "cropToolbarIconColor": "#00FF66",
+            "cropToolbarActionTextColor": "#FFE600",
+            "cropBackgroundColor": "#07070B"
+          }
+        }
+      ],
+      "expo-video",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Mence to record local voice clips from the Hub.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ]
+    ]
+  }
 }

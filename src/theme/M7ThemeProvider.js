@@ -61,12 +61,21 @@ function M7ThemeProvider({ children }) {
     }
 
     const preferenceChanges = { ...preferenceRef.current, [key]: value };
-    if (key === 'neonIntensity' && value === 'elegant') {
+    if (key === 'bubbleColor') {
+      preferenceChanges.customBubbleColor = null;
+    } else if (key === 'neonIntensity' && value === 'elegant') {
       preferenceChanges.wallpaper = 'oled';
+      preferenceChanges.screenWallpapers = { ...defaultThemePreferences.screenWallpapers };
     } else if (
       key === 'wallpaper' &&
       value !== 'oled' &&
       preferenceRef.current.neonIntensity === 'elegant'
+    ) {
+      preferenceChanges.neonIntensity = 'balanced';
+    } else if (
+      key === 'screenWallpapers' &&
+      preferenceRef.current.neonIntensity === 'elegant' &&
+      Object.values(value).some(wallpaper => wallpaper !== 'global')
     ) {
       preferenceChanges.neonIntensity = 'balanced';
     }
@@ -111,12 +120,17 @@ function M7ThemeProvider({ children }) {
   );
 }
 
-function useM7Theme() {
+function useM7Theme(screenScope) {
   const context = React.useContext(M7ThemeContext);
   if (!context) {
     throw new Error('useM7Theme must be used within M7ThemeProvider');
   }
-  return context;
+
+  const scopedTheme = useMemo(
+    () => (screenScope ? createM7Theme(context.preferences, screenScope) : context.theme),
+    [context.preferences, context.theme, screenScope],
+  );
+  return useMemo(() => ({ ...context, theme: scopedTheme }), [context, scopedTheme]);
 }
 
 export { M7ThemeProvider, useM7Theme };

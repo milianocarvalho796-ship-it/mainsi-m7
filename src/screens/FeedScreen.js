@@ -26,14 +26,15 @@ const microPosts = [
   },
 ];
 
-function Avatar({ initials, variant = 'green' }) {
-  const { theme } = useM7Theme();
+function Avatar({ initials, variant = 'green', size = 38 }) {
+  const { theme } = useM7Theme('feed');
   return (
     <VideoAvatar
       initials={initials}
       accentColor={variant === 'purple' ? theme.colors.deepNeonPurple : theme.colors.electricGreen}
       neonIntensity={theme.effects.neonIntensity}
-      size={38}
+      wallpaperScope="feed"
+      size={size}
     />
   );
 }
@@ -55,9 +56,9 @@ function LikeButton({ liked, count, onPress }) {
   );
 }
 
-function MicroPost({ post, liked, onLike }) {
+function MicroPost({ post, liked, onLike, theme }) {
   return (
-    <View style={styles.postCard}>
+    <View style={[styles.postCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.panelBorder }]}>
       <View style={styles.postHeader}>
         <Avatar initials={post.initials} />
         <View style={styles.identity}>
@@ -79,9 +80,9 @@ function MicroPost({ post, liked, onLike }) {
   );
 }
 
-function FeaturedPost({ liked, onLike }) {
+function FeaturedPost({ liked, onLike, theme }) {
   return (
-    <View style={styles.featuredCard}>
+    <View style={[styles.featuredCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.panelBorder }]}>
       <View style={styles.featuredHeader}>
         <Avatar initials="NX" variant="purple" />
         <View style={styles.identity}>
@@ -91,7 +92,7 @@ function FeaturedPost({ liked, onLike }) {
         <Text style={styles.more}>···</Text>
       </View>
 
-      <View style={styles.featuredMedia}>
+      <View style={[styles.featuredMedia, { backgroundColor: theme.colors.background }]}>
         <View style={styles.mediaOrbit} />
         <View style={styles.mediaRing} />
         <View style={styles.mediaHorizon} />
@@ -121,17 +122,19 @@ function FeaturedPost({ liked, onLike }) {
 }
 
 export default function FeedScreen() {
+  const { theme } = useM7Theme('feed');
   const [likedPosts, setLikedPosts] = useState({});
+  const [activeStream, setActiveStream] = useState('x');
 
   function toggleLike(id) {
     setLikedPosts(current => ({ ...current, [id]: !current[id] }));
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <View style={styles.topBar}>
         <View>
-          <Text style={styles.eyebrow}>MAINSI / M7</Text>
+          <Text style={[styles.eyebrow, { color: theme.colors.electricGreen }]}>Mence. / @voce.mence</Text>
           <Text style={styles.screenTitle}>Feed</Text>
         </View>
         <View style={styles.liveBadge}>
@@ -141,41 +144,86 @@ export default function FeedScreen() {
       </View>
 
       <View style={styles.feedTabs}>
-        <View style={styles.activeFeedTab}>
-          <Text style={styles.activeFeedTabText}>FOR YOU</Text>
-        </View>
-        <Text style={styles.inactiveFeedTab}>FOLLOWING</Text>
-        <Text style={styles.inactiveFeedTab}>M7 SIGNALS</Text>
+        {[
+          { id: 'x', label: 'X STREAM' },
+          { id: 'facebook', label: 'FACEBOOK' },
+        ].map(stream => (
+          <Pressable
+            key={stream.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected: activeStream === stream.id }}
+            onPress={() => setActiveStream(stream.id)}
+            style={[
+              styles.feedTab,
+              activeStream === stream.id && {
+                borderBottomColor: theme.colors.electricGreen,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                activeStream === stream.id ? styles.activeFeedTabText : styles.inactiveFeedTab,
+                activeStream === stream.id && { color: theme.colors.electricGreen },
+              ]}
+            >
+              {stream.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       <ScrollView
         contentContainerStyle={styles.feedContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionLabel}>MICRO NOTES <Text style={styles.sectionCount}>/ 02</Text></Text>
-        {microPosts.slice(0, 1).map(post => (
-          <MicroPost
-            key={post.id}
-            post={post}
-            liked={Boolean(likedPosts[post.id])}
-            onLike={() => toggleLike(post.id)}
-          />
-        ))}
-
-        <Text style={styles.sectionLabel}>FEATURED TRANSMISSION</Text>
-        <FeaturedPost
-          liked={Boolean(likedPosts.featured)}
-          onLike={() => toggleLike('featured')}
-        />
-
-        {microPosts.slice(1).map(post => (
-          <MicroPost
-            key={post.id}
-            post={post}
-            liked={Boolean(likedPosts[post.id])}
-            onLike={() => toggleLike(post.id)}
-          />
-        ))}
+        {activeStream === 'x' ? (
+          <>
+            <Text style={[styles.sectionLabel, { color: theme.colors.electricGreen }]}>
+              X-STYLE MICRO NOTES <Text style={styles.sectionCount}>/ {microPosts.length}</Text>
+            </Text>
+            {microPosts.map(post => (
+              <MicroPost
+                key={post.id}
+                post={post}
+                theme={theme}
+                liked={Boolean(likedPosts[post.id])}
+                onLike={() => toggleLike(post.id)}
+              />
+            ))}
+          </>
+        ) : (
+          <>
+            <Text style={[styles.sectionLabel, { color: theme.colors.electricGreen }]}>
+              FACEBOOK-STYLE MEDIA STREAM
+            </Text>
+            <FeaturedPost
+              liked={Boolean(likedPosts.featured)}
+              onLike={() => toggleLike('featured')}
+              theme={theme}
+            />
+            <View style={[styles.postCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.panelBorder }]}>
+              <View style={styles.postHeader}>
+                <Avatar initials="K7" size={38} />
+                <View style={styles.identity}>
+                  <Text style={styles.handle}>@kairo_7</Text>
+                  <Text style={styles.timestamp}>2 hours ago · COMMUNITY</Text>
+                </View>
+              </View>
+              <Text style={styles.featuredText}>
+                Night market finds. New routes, old friends, and a skyline that never sleeps.
+              </Text>
+              <View style={styles.communityMedia}>
+                <Text style={styles.mediaKicker}>COMMUNITY ALBUM / 04</Text>
+                <Text style={styles.mediaTitle}>NIGHT{'\n'}MARKET</Text>
+              </View>
+              <LikeButton
+                liked={Boolean(likedPosts.community)}
+                count={96}
+                onPress={() => toggleLike('community')}
+              />
+            </View>
+          </>
+        )}
         <Text style={styles.endOfFeed}>YOU'RE CAUGHT UP · STAY ELECTRIC</Text>
       </ScrollView>
     </View>
@@ -237,10 +285,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 26,
   },
-  activeFeedTab: {
+  feedTab: {
     paddingBottom: 12,
     borderBottomWidth: 2,
-    borderBottomColor: m7Theme.colors.electricGreen,
+    borderBottomColor: 'transparent',
   },
   activeFeedTabText: {
     color: m7Theme.colors.electricGreen,
@@ -254,6 +302,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1,
     paddingBottom: 12,
+  },
+  communityMedia: {
+    height: 150,
+    marginVertical: 12,
+    padding: 18,
+    borderRadius: 10,
+    backgroundColor: '#160D22',
+    justifyContent: 'center',
   },
   feedContent: {
     paddingHorizontal: 16,

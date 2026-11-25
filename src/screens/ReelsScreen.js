@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemedText as Text } from '../components/ThemedText';
+import VideoAvatar from '../components/VideoAvatar';
 import m7Theme from '../theme/m7Theme';
+import { useM7Theme } from '../theme/M7ThemeProvider';
 
 const reels = [
   {
@@ -39,7 +41,7 @@ const reels = [
   },
 ];
 
-function ReelCard({ reel, height, liked, onLike }) {
+function ReelCard({ reel, height, liked, onLike, theme }) {
   return (
     <View style={[styles.reel, { height }]}>
       <View style={[styles.artwork, { backgroundColor: reel.backdrop }]}>
@@ -65,6 +67,14 @@ function ReelCard({ reel, height, liked, onLike }) {
 
       <View style={styles.reelInfo}>
         <View style={styles.creatorRow}>
+          <VideoAvatar
+            accessibilityLabel={`${reel.creator} looping creator avatar`}
+            accentColor={reel.accent}
+            initials={reel.creator.slice(1, 3).toUpperCase()}
+            neonIntensity={theme.effects.neonIntensity}
+            wallpaperScope="reels"
+            size={34}
+          />
           <View style={[styles.creatorTag, { borderColor: `${reel.accent}88` }]}>
             <Text style={[styles.creatorText, { color: reel.accent }]}>{reel.creator}</Text>
           </View>
@@ -100,6 +110,7 @@ function ReelCard({ reel, height, liked, onLike }) {
 }
 
 export default function ReelsScreen() {
+  const { theme } = useM7Theme('reels');
   const [pageHeight, setPageHeight] = useState(0);
   const [likedReels, setLikedReels] = useState({});
 
@@ -113,7 +124,10 @@ export default function ReelsScreen() {
   }
 
   return (
-    <View style={styles.screen} onLayout={handleLayout}>
+    <View
+      style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      onLayout={handleLayout}
+    >
       {pageHeight > 0 && (
         <ScrollView
           pagingEnabled
@@ -126,6 +140,7 @@ export default function ReelsScreen() {
               key={reel.id}
               reel={reel}
               height={pageHeight}
+              theme={theme}
               liked={Boolean(likedReels[reel.id])}
               onLike={() => toggleLike(reel.id)}
             />
