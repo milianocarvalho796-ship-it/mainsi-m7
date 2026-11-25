@@ -111,7 +111,7 @@ function QuickAction({ icon, label, onPress, active, theme }) {
 }
 
 export default function HubScreen({ navigation }) {
-  const { theme } = useM7Theme('hub');
+  const { theme } = useM7Theme('profile');
   const avatarRef = useRef(null);
   const recorder = useAudioRecorder(RecordingPresets.LOW_QUALITY);
   const recorderState = useAudioRecorderState(recorder);
@@ -278,7 +278,7 @@ export default function HubScreen({ navigation }) {
               initials="M7"
               media={profileMedia}
               neonIntensity={theme.effects.neonIntensity}
-              wallpaperScope="hub"
+              wallpaperScope="profile"
               onMediaChange={handleProfileMediaChange}
               size={64}
             />

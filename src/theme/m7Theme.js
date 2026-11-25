@@ -35,7 +35,7 @@ const wallpaperScopes = [
   { id: 'chatDetail', label: 'CHAT DETAIL' },
   { id: 'feed', label: 'FEED' },
   { id: 'reels', label: 'REELS' },
-  { id: 'hub', label: 'HUB' },
+  { id: 'profile', label: 'PROFILE' },
 ];
 
 const defaultThemePreferences = {

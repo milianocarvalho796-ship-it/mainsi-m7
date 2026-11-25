@@ -61,7 +61,7 @@ function MediaSaverItem({ item, onOpen, onRemove, theme }) {
 }
 
 export default function MediaSaver() {
-  const { theme } = useM7Theme('hub');
+  const { theme } = useM7Theme('profile');
   const [visible, setVisible] = useState(false);
   const [category, setCategory] = useState('audio');
   const [link, setLink] = useState('');

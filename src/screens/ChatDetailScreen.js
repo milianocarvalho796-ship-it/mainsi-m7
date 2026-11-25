@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText as Text, ThemedTextInput as TextInput } from '../components/ThemedText';
+import GhostMode, { GhostModeToggle } from '../components/GhostMode';
 import ThemeControls from '../components/ThemeControls';
 import VideoAvatar from '../components/VideoAvatar';
+import EncryptionOverlay from '../components/encryptionOverlay';
 import offlineQueue from '../storage/offlineQueue';
 import m7Theme from '../theme/m7Theme';
 import { useM7Theme } from '../theme/M7ThemeProvider';
@@ -226,81 +228,87 @@ export default function ChatDetailScreen({ navigation, route }) {
         </View>
 
         <View style={styles.encryptionNotice}>
-          <Text style={styles.encryptionText}>
-            M7 PRIVATE CHANNEL · MESSAGES QUEUED LOCALLY UNTIL SYNC
-          </Text>
+          <View style={styles.encryptionBadgeRow}>
+            <EncryptionOverlay compact wallpaperScope="chatDetail" />
+            <GhostModeToggle compact wallpaperScope="chatDetail" />
+          </View>
+          <Text style={styles.encryptionText}>LOCAL OUTBOX · SYNC SERVICE NOT CONNECTED</Text>
         </View>
 
         {showThemeControls ? <ThemeControls wallpaperScope="chatDetail" /> : null}
 
-        <ScrollView
-          ref={scrollViewRef}
-          style={{ backgroundColor: theme.colors.background }}
-          contentContainerStyle={styles.messagesContent}
-          keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.dayDivider}>TODAY · PRIVATE TRANSMISSION</Text>
-          {messages.map(message => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              theme={theme}
-              onLongPress={
-                message.sender !== 'me'
-                  ? () => confirmLocalRemoval(message)
-                  : undefined
-              }
-            />
-          ))}
-        </ScrollView>
+        <GhostMode style={styles.privateView} wallpaperScope="chatDetail">
+          <>
+            <ScrollView
+              ref={scrollViewRef}
+              style={{ backgroundColor: theme.colors.background }}
+              contentContainerStyle={styles.messagesContent}
+              keyboardShouldPersistTaps="handled"
+              onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.dayDivider}>TODAY · PRIVATE TRANSMISSION</Text>
+              {messages.map(message => (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  theme={theme}
+                  onLongPress={
+                    message.sender !== 'me'
+                      ? () => confirmLocalRemoval(message)
+                      : undefined
+                  }
+                />
+              ))}
+            </ScrollView>
 
-        {queueError ? (
-          <Text accessibilityRole="alert" style={styles.errorMessage}>
-            {queueError}
-          </Text>
-        ) : null}
+            {queueError ? (
+              <Text accessibilityRole="alert" style={styles.errorMessage}>
+                {queueError}
+              </Text>
+            ) : null}
 
-        <View
-          style={[
-            styles.composer,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: `rgba(0, 255, 102, ${Math.max(0.15, theme.effects.neonIntensity * 0.45)})`,
-            },
-          ]}
-        >
-          <TextInput
-            accessibilityLabel="Write a secure message"
-            editable={!sending}
-            multiline
-            onChangeText={setDraft}
-            onSubmitEditing={sendMessage}
-            placeholder="Write a message..."
-            placeholderTextColor={m7Theme.colors.mutedText}
-            returnKeyType="send"
-            style={styles.input}
-            value={draft}
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Queue message"
-            disabled={!draft.trim() || sending}
-            onPress={sendMessage}
-            style={({ pressed }) => [
-              styles.sendButton,
-              (!draft.trim() || sending) && styles.sendButtonDisabled,
-              pressed && styles.sendButtonPressed,
-            ]}
-          >
-            <Text style={styles.sendGlyph}>{sending ? '…' : '↑'}</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.composerHint}>SAVED TO THIS DEVICE · SYNC SERVICE NOT CONNECTED</Text>
-        {preferences.antiDelete ? (
-          <Text style={styles.localOnlyHint}>ANTI-DELETE · LOCAL DEMO THREAD ONLY</Text>
-        ) : null}
+            <View
+              style={[
+                styles.composer,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: `rgba(0, 255, 102, ${Math.max(0.15, theme.effects.neonIntensity * 0.45)})`,
+                },
+              ]}
+            >
+              <TextInput
+                accessibilityLabel="Write a secure message"
+                editable={!sending}
+                multiline
+                onChangeText={setDraft}
+                onSubmitEditing={sendMessage}
+                placeholder="Write a message..."
+                placeholderTextColor={m7Theme.colors.mutedText}
+                returnKeyType="send"
+                style={styles.input}
+                value={draft}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Queue message"
+                disabled={!draft.trim() || sending}
+                onPress={sendMessage}
+                style={({ pressed }) => [
+                  styles.sendButton,
+                  (!draft.trim() || sending) && styles.sendButtonDisabled,
+                  pressed && styles.sendButtonPressed,
+                ]}
+              >
+                <Text style={styles.sendGlyph}>{sending ? '…' : '↑'}</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.composerHint}>SAVED TO THIS DEVICE · SYNC SERVICE NOT CONNECTED</Text>
+            {preferences.antiDelete ? (
+              <Text style={styles.localOnlyHint}>ANTI-DELETE · LOCAL DEMO THREAD ONLY</Text>
+            ) : null}
+          </>
+        </GhostMode>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -383,11 +391,17 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   encryptionNotice: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     backgroundColor: '#0C130F',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#1C3223',
+    gap: 5,
+  },
+  encryptionBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   encryptionText: {
     color: '#9CC5A9',
@@ -403,6 +417,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     justifyContent: 'flex-end',
     gap: 12,
+  },
+  privateView: {
+    flex: 1,
   },
   dayDivider: {
     alignSelf: 'center',

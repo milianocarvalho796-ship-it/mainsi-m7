@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import GhostMode, { GhostModeToggle } from '../components/GhostMode';
 import VideoAvatar from '../components/VideoAvatar';
 import { ThemedText as Text, ThemedTextInput as TextInput } from '../components/ThemedText';
+import EncryptionOverlay from '../components/encryptionOverlay';
 import m7Theme from '../theme/m7Theme';
 import { useM7Theme } from '../theme/M7ThemeProvider';
 
@@ -142,58 +144,68 @@ export default function ChatsScreen({ navigation }) {
       </View>
 
       <View style={styles.securityBanner}>
-        <View style={styles.securityDot} />
-        <Text style={styles.securityMessage}>
-          {preferences.ghostMode
-            ? 'GHOST MODE · PRESENCE HIDDEN IN THIS UI'
-            : 'PRIVATE CHANNELS · LOCAL OUTBOX AVAILABLE'}
-        </Text>
+        <View style={styles.securityBadgeRow}>
+          <EncryptionOverlay compact wallpaperScope="chats" />
+          <GhostModeToggle compact wallpaperScope="chats" />
+        </View>
+        <View style={styles.securityStatusRow}>
+          <View style={styles.securityDot} />
+          <Text style={styles.securityMessage}>
+            {preferences.ghostMode
+              ? 'GHOST MODE · PRESENCE HIDDEN IN THIS UI'
+              : 'PRIVATE CHANNELS · LOCAL OUTBOX AVAILABLE'}
+          </Text>
+        </View>
       </View>
 
-      <View style={[styles.searchBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.panelBorder }]}>
-        <Text style={styles.searchGlyph}>⌕</Text>
-        <TextInput
-          accessibilityLabel="Search chats"
-          onChangeText={setQuery}
-          placeholder="Search contacts or messages"
-          placeholderTextColor={m7Theme.colors.mutedText}
-          returnKeyType="search"
-          style={styles.searchInput}
-          value={query}
-        />
-      </View>
+      <GhostMode style={styles.chatArea} wallpaperScope="chats">
+        <>
+          <View style={[styles.searchBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.panelBorder }]}>
+            <Text style={styles.searchGlyph}>⌕</Text>
+            <TextInput
+              accessibilityLabel="Search chats"
+              onChangeText={setQuery}
+              placeholder="Search contacts or messages"
+              placeholderTextColor={m7Theme.colors.mutedText}
+              returnKeyType="search"
+              style={styles.searchInput}
+              value={query}
+            />
+          </View>
 
-      <View style={styles.listHeading}>
-        <Text style={styles.listTitle}>MESSAGES</Text>
-        <Text style={[styles.onlineCount, { color: theme.colors.electricGreen }]}>
-          {preferences.ghostMode
-            ? 'GHOST MODE'
-            : `${conversations.filter(conversation => conversation.online).length} ONLINE`}
-        </Text>
-      </View>
+          <View style={styles.listHeading}>
+            <Text style={styles.listTitle}>MESSAGES</Text>
+            <Text style={[styles.onlineCount, { color: theme.colors.electricGreen }]}>
+              {preferences.ghostMode
+                ? 'GHOST MODE'
+                : `${conversations.filter(conversation => conversation.online).length} ONLINE`}
+            </Text>
+          </View>
 
-      <ScrollView
-        contentContainerStyle={styles.listContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {filteredConversations.map(conversation => (
-          <ConversationRow
-            key={conversation.id}
-            conversation={conversation}
-            theme={theme}
-            onPress={() => navigation.navigate('ChatDetail', { conversation })}
-          />
-        ))}
-        {filteredConversations.length === 0 && (
-          <Text style={styles.emptyState}>NO SIGNALS MATCH THAT SEARCH</Text>
-        )}
-      </ScrollView>
+          <ScrollView
+            contentContainerStyle={styles.listContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {filteredConversations.map(conversation => (
+              <ConversationRow
+                key={conversation.id}
+                conversation={conversation}
+                theme={theme}
+                onPress={() => navigation.navigate('ChatDetail', { conversation })}
+              />
+            ))}
+            {filteredConversations.length === 0 && (
+              <Text style={styles.emptyState}>NO SIGNALS MATCH THAT SEARCH</Text>
+            )}
+          </ScrollView>
 
-      <View style={styles.queueFooter}>
-        <View style={styles.queueDot} />
-        <Text style={styles.queueFooterText}>OFFLINE MESSAGE QUEUE READY</Text>
-      </View>
+          <View style={styles.queueFooter}>
+            <View style={styles.queueDot} />
+            <Text style={styles.queueFooterText}>OFFLINE MESSAGE QUEUE READY</Text>
+          </View>
+        </>
+      </GhostMode>
     </SafeAreaView>
   );
 }
@@ -248,12 +260,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#173421',
     borderRadius: 8,
-    paddingHorizontal: 11,
-    paddingVertical: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     backgroundColor: '#0B130E',
+    gap: 7,
+  },
+  securityBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
+  },
+  securityStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 2,
   },
   securityDot: {
     width: 6,
@@ -266,6 +287,9 @@ const styles = StyleSheet.create({
     fontFamily: m7Theme.fonts.bodyMedium,
     fontSize: 9,
     letterSpacing: 0.7,
+  },
+  chatArea: {
+    flex: 1,
   },
   searchBox: {
     height: 44,
